@@ -216,9 +216,8 @@ class Bounty(SuperModel):
     CLOSED_STATUSES = ['expired', 'unknown', 'cancelled', 'done']
     WORK_IN_PROGRESS_STATUSES = ['open', 'started', 'submitted']
     TERMINAL_STATUSES = ['done', 'expired', 'cancelled']
-    CONTRACT_VERSIONS = (('v1.1', 'v1.1'))
 
-    contract_version = models.CharField(max_length=10, choices=CONTRACT_VERSIONS, blank=True)
+    contract_version = models.CharField(max_length=5, blank=True)
     web3_type = models.CharField(max_length=50, default='bounties_network')
     title = models.CharField(max_length=255)
     web3_created = models.DateTimeField(db_index=True)

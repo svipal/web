@@ -39,6 +39,12 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('network', default='rinkeby', type=str)
+        parser.add_argument(
+            'contract_version',
+            default='',
+            type=str,
+            help="The Bounty contract version. Values: null, v1.1"
+        )
 
     def handle(self, *args, **options):
         # config
@@ -46,9 +52,10 @@ class Command(BaseCommand):
 
         # setup
         network = options['network']
+        contract_version = options['contract_version']
         web3 = get_web3(network)
-        contract_address = getStandardBountiesContractAddresss(network)
-        contract = getBountyContract(network)
+        contract_address = getStandardBountiesContractAddresss(network, contract_version)
+        contract = getBountyContract(network, contract_version)
         last_block_hash = None
 
         while True:

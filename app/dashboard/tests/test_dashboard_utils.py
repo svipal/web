@@ -47,6 +47,7 @@ class DashboardUtilsTest(TestCase):
     @staticmethod
     def test_get_bounty_contract():
         assert getBountyContract('mainnet').address == "0x2af47a65da8CD66729b4209C22017d6A5C2d2400"
+        assert getBountyContract('mainnet', 'v1.1').address == "0x2af47a65da8CD66729b4209C22017d6A5C2d2400"
 
     @staticmethod
     def test_get_bounty():

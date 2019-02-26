@@ -52,6 +52,8 @@ class DashboardUtilsTest(TestCase):
     @staticmethod
     def test_get_bounty():
         assert get_bounty(100, 'rinkeby')['contract_deadline'] == 1515699751
+        assert get_bounty(100, 'rinkeby', '')['contract_deadline'] == 1515699751
+        assert get_bounty(100, 'rinkeby', 'v1_1')['contract_deadline'] == 1515699751
 
     @staticmethod
     def test_get_ordinal_repr():

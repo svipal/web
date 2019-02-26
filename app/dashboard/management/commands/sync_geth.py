@@ -86,7 +86,7 @@ class Command(BaseCommand):
             try:
                 # pull and process each bounty
                 print(f"[{month}/{day} {hour}:00] Getting bounty {bounty_enum}")
-                bounty = get_bounty(bounty_enum, network)
+                bounty = get_bounty(bounty_enum, network, contract_version)
                 print(f"[{month}/{day} {hour}:00] Processing bounty {bounty_enum}")
                 web3_process_bounty(bounty)
 

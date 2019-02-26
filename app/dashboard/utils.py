@@ -355,17 +355,16 @@ def getBountyContract(network, contract_version=''):
     return getBountyContract
 
 
-def get_bounty(bounty_enum, network):
+def get_bounty(bounty_enum, network, contract_version=''):
     if (settings.DEBUG or settings.ENV != 'prod') and network == 'mainnet':
         # This block will return {} if env isn't prod and the network is mainnet.
         print("--*--")
         return {}
 
-    standard_bounties = getBountyContract(network) # TODO: Multi Contract Support
+    standard_bounties = getBountyContract(network, contract_version)
 
     try:
         issuer, contract_deadline, fulfillmentAmount, paysTokens, bountyStage, balance = standard_bounties.functions.getBounty(bounty_enum).call()
-        # TODO: Multi Contract Support
     except BadFunctionCallOutput:
         raise BountyNotFoundException
     # pull from blockchain
@@ -460,7 +459,7 @@ def has_tx_mined(txid, network):
         return False
 
 
-def get_bounty_id(issue_url, network):
+def get_bounty_id(issue_url, network, contract_version=''):
     issue_url = normalize_url(issue_url)
     bounty_id = get_bounty_id_from_db(issue_url, network)
     if bounty_id:
@@ -472,13 +471,13 @@ def get_bounty_id(issue_url, network):
     ).nocache().order_by('-standard_bounties_id')
 
     try:
-        highest_known_bounty_id = get_highest_known_bounty_id(network)
-        bounty_id = get_bounty_id_from_web3(issue_url, network, highest_known_bounty_id, direction='down')
+        highest_known_bounty_id = get_highest_known_bounty_id(network, contract_version)
+        bounty_id = get_bounty_id_from_web3(issue_url, network, highest_known_bounty_id, direction='down', contract_version='')
     except NoBountiesException:
         last_known_bounty_id = 0
         if all_known_stdbounties.exists():
             last_known_bounty_id = all_known_stdbounties.first().standard_bounties_id
-        bounty_id = get_bounty_id_from_web3(issue_url, network, last_known_bounty_id, direction='up')
+        bounty_id = get_bounty_id_from_web3(issue_url, network, last_known_bounty_id, direction='up', contract_version='')
 
     return bounty_id
 
@@ -495,15 +494,15 @@ def get_bounty_id_from_db(issue_url, network):
     return bounties.first().standard_bounties_id
 
 
-def get_highest_known_bounty_id(network):
-    standard_bounties = getBountyContract(network) # TODO: Multi Contract Support
+def get_highest_known_bounty_id(network, contract_version):
+    standard_bounties = getBountyContract(network, contract_version)
     num_bounties = int(standard_bounties.functions.getNumBounties().call())
     if num_bounties == 0:
         raise NoBountiesException()
     return num_bounties - 1
 
 
-def get_bounty_id_from_web3(issue_url, network, start_bounty_id, direction='up'):
+def get_bounty_id_from_web3(issue_url, network, start_bounty_id, direction='up', contract_version=''):
     issue_url = normalize_url(issue_url)
 
     # iterate through all the bounties
@@ -514,7 +513,7 @@ def get_bounty_id_from_web3(issue_url, network, start_bounty_id, direction='up')
 
             # pull and process each bounty
             print(f'** get_bounty_id_from_web3; looking at {bounty_enum}')
-            bounty = get_bounty(bounty_enum, network)
+            bounty = get_bounty(bounty_enum, network, contract_version)
             url = bounty.get('data', {}).get('payload', {}).get('webReferenceURL', False)
             if url == issue_url:
                 return bounty['id']

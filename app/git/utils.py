@@ -30,6 +30,10 @@ import dateutil.parser
 import requests
 from github import Github
 from github.GithubException import BadCredentialsException, GithubException, UnknownObjectException
+
+from gitlab import Gitlab
+from gitlab.exceptions import GitlabHttpError
+
 from requests.exceptions import ConnectionError
 from rest_framework.reverse import reverse
 
@@ -55,7 +59,6 @@ def github_connect(token=None):
     github_client = None
     if not token:
         token = settings.GITHUB_API_TOKEN
-
     try:
         github_client = Github(
             login_or_token=token,
@@ -66,23 +69,65 @@ def github_connect(token=None):
         logger.exception(e)
     return github_client
 
+def gitlab_connect(token=None):
+    """Authenticate the GL wrapper with Gitlab.
 
-def get_gh_issue_details(org, repo, issue_num, token=None):
+    Args:
+        token (str): The Gitlab token to authenticate with.
+            Defaults to: None.
+
+    """
+    token = settings.GITLAB_API_TOKEN
+
+    logger.info(settings.GITLAB_API_TOKEN)
+
+    try:
+        gitlab_client = Gitlab(
+            "https://gitlab.com",
+            private_token=token
+        )
+        gitlab_client.auth()
+    except GitlabHttpError as e:
+        logger.exception(e)
+    return gitlab_client
+
+
+
+def get_issue_details(itype, org, repo, issue_num, token=None):
     details = {'keywords': []}
     try:
-        gh_client = github_connect(token)
-        org_user = gh_client.get_user(login=org)
-        repo_obj = org_user.get_repo(repo)
-        issue_details = repo_obj.get_issue(issue_num)
-        langs = repo_obj.get_languages()
-        for k, _ in langs.items():
-            details['keywords'].append(k)
-        details['title'] = issue_details.title
-        details['description'] = issue_details.body.replace('\n', '').strip()
-        details['state'] = issue_details.state
-        if issue_details.state == 'closed':
-            details['closed_at'] = issue_details.closed_at.isoformat()
-            details['closed_by'] = issue_details.closed_by.name
+        if itype == "github.com" :
+            logger.info("testgh")
+            gh_client = github_connect(token)
+            org_user = gh_client.get_user(login=org)
+            repo_obj = org_user.get_repo(repo)
+            issue_details = repo_obj.get_issue(issue_num)
+            langs = repo_obj.get_languages()
+            for k, _ in langs.items():
+                details['keywords'].append(k)
+            details['title'] = issue_details.title
+            details['description'] = issue_details.body.replace('\n', '').strip()
+            details['state'] = issue_details.state
+            if issue_details.state == 'closed':
+                details['closed_at'] = issue_details.closed_at.isoformat()
+                details['closed_by'] = issue_details.closed_by.name
+        elif itype == "gitlab.com":
+            logger.info("testgl")
+            gl_client = gitlab_connect(token)
+            repo_obj = gl_client.projects.get(org + "/" + repo)
+            langs = repo_obj.languages()
+            logger.info(langs)
+            for k, _ in langs.items():
+                details['keywords'].append(k)
+            issue_details = repo_obj.issues.get(issue_num)
+            logger.info(issue_details)
+            details['title'] = issue_details.title
+            details['description'] = issue_details.description.replace('\n', '').strip()
+            details['state'] = issue_details.state
+            if issue_details.state == 'closed':
+                details['closed_at'] = issue_details.closed_at.isoformat()
+                details['closed_by'] = issue_details.closed_by.name
+            
     except UnknownObjectException:
         return {}
     return details
@@ -696,13 +741,14 @@ def get_url_dict(issue_url):
     """
     try:
         return {
+            'itype': issue_url.split('/')[2],
             'org': issue_url.split('/')[3],
             'repo': issue_url.split('/')[4],
             'issue_num': int(issue_url.split('/')[6]),
         }
     except IndexError as e:
         logger.warning(e)
-        return {'org': org_name(issue_url), 'repo': repo_name(issue_url), 'issue_num': int(issue_number(issue_url))}
+        return {'itype': issue_url.split('/')[2], 'org': org_name(issue_url), 'repo': repo_name(issue_url), 'issue_num': int(issue_number(issue_url))}
 
 
 def repo_url(issue_url):

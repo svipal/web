@@ -614,9 +614,12 @@ var retrieveIssueDetails = function() {
   if (typeof issue_url == 'undefined') {
     return;
   }
-  if (issue_url.length < 5 || issue_url.indexOf('github') == -1) {
+  if (issue_url.length < 5 || issue_url.indexOf('github') == -1 && issue_url.indexOf('gitlab') == -1) {
     return;
   }
+
+
+  console.log('test')
   var request_url = '/sync/get_issue_details?url=' + encodeURIComponent(issue_url) + '&token=' + currentProfile.githubToken;
 
   $.each(target_eles, function(i, ele) {

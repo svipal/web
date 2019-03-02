@@ -64,6 +64,7 @@ ecdsa
 pysha3
 oyaml
 pygithub==1.43.2
+python-gitlab==1.6.0
 raven==6.9.0
 django-cacheops==4.0.7
 django-redis==4.10.0

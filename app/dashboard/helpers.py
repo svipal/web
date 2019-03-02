@@ -37,7 +37,7 @@ from dashboard.notifications import (
 )
 from dashboard.tokens import addr_to_token
 from economy.utils import convert_amount
-from git.utils import get_gh_issue_details, get_url_dict
+from git.utils import get_issue_details, get_url_dict
 from jsondiff import diff
 from marketing.mails import new_reserved_issue
 from pytz import UTC
@@ -137,14 +137,14 @@ def amount(request):
 
 @ratelimit(key='ip', rate='50/m', method=ratelimit.UNSAFE, block=True)
 def issue_details(request):
-    """Determine the Github issue keywords of the specified Github issue or PR URL.
+    """Determine theissue keywords of the specified issue or PR URL.
 
     Todo:
         * Modify the view to only use the Github API (remove BeautifulSoup).
         * Simplify the view logic.
 
     Returns:
-        JsonResponse: A JSON response containing the Github issue or PR keywords.
+        JsonResponse: A JSON response containing the issue or PR keywords.
 
     """
     from dashboard.utils import clean_bounty_url
@@ -159,16 +159,17 @@ def issue_details(request):
         response['message'] = 'invalid arguments'
         return JsonResponse(response)
 
-    if url.lower()[:19] != 'https://github.com/':
+    if url.lower()[:19] != 'https://github.com/' and url.lower()[:19] != 'https://gitlab.com/':
         response['message'] = 'invalid arguments'
         return JsonResponse(response)
 
     try:
         url_dict = get_url_dict(clean_bounty_url(url))
         if url_dict:
-            response = get_gh_issue_details(token=token, **url_dict)
+            logger.info(url_dict)
+            response = get_issue_details(token=token, **url_dict)
         else:
-            response['message'] = 'could not parse Github url'
+            response['message'] = 'could not parse url'
     except Exception as e:
         logger.warning(e)
         response['message'] = 'could not pull back remote response'
@@ -458,7 +459,7 @@ def create_new_bounty(old_bounties, bounty_payload, bounty_details, bounty_id):
             new_bounty.fetch_issue_item()
             try:
                 issue_kwargs = get_url_dict(new_bounty.github_url)
-                new_bounty.github_issue_details = get_gh_issue_details(**issue_kwargs)
+                new_bounty.github_issue_details = get_issue_details(**issue_kwargs)
 
             except Exception as e:
                 logger.error(e)

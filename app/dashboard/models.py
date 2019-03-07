@@ -783,16 +783,22 @@ class Bounty(SuperModel):
             dict: The comments data dictionary provided by Github.
 
         """
-        if self.github_url.lower()[:19] != 'https://github.com/':
+        itype =""
+
+        if self.github_url.lower()[:19] == 'https://github.com/':
+            itype = "github.com"
+        elif self.github_url.lower()[:19] == 'https://github.com/':
+            itype = "gitlab.com"
+        else:
             return []
 
         parsed_url = urlsplit(self.github_url)
         try:
-            github_user, github_repo, _, github_issue = parsed_url.path.split('/')[1:5]
+            user, repo, _, issue = parsed_url.path.split('/')[1:5]
         except ValueError:
             logger.info(f'Invalid github url for Bounty: {self.pk} -- {self.github_url}')
             return []
-        comments = get_issue_comments(github_user, github_repo, github_issue)
+        comments = get_issue_comments(itype,user, repo, issue)
         if isinstance(comments, dict) and comments.get('message', '') == 'Not Found':
             logger.info(f'Bounty {self.pk} contains an invalid github url {self.github_url}')
             return []

@@ -75,12 +75,8 @@ def gitlab_connect(token=None):
     Args:
         token (str): The Gitlab token to authenticate with.
             Defaults to: None.
-
     """
     token = settings.GITLAB_API_TOKEN
-
-    logger.info(settings.GITLAB_API_TOKEN)
-
     try:
         gitlab_client = Gitlab(
             "https://gitlab.com",
@@ -92,42 +88,47 @@ def gitlab_connect(token=None):
     return gitlab_client
 
 
+def get_gl_issue_details(itype, org, repo, issue_num, token):
+    details = {'keywords': []}
+    logger.info("testgl issue_details")
+    gl_client = gitlab_connect(token)
+    repo_obj = gl_client.projects.get(org + "/" + repo)
+    langs = repo_obj.languages()
+    for k, _ in langs.items():
+        details['keywords'].append(k)
+    issue_details = repo_obj.issues.get(issue_num)
+    details['title'] = issue_details.title
+    details['description'] = issue_details.description.replace('\n', '').strip()
+    details['state'] = issue_details.state
+    if issue_details.state == 'closed':
+        details['closed_at'] = issue_details.closed_at.isoformat()
+        details['closed_by'] = issue_details.closed_by.name()
+    return details
+def get_gh_issue_details(itype, org, repo, issue_num, token):
+    details = {'keywords': []}
+    logger.info("testgh issue_details")
+    gh_client = github_connect(token)
+    org_user = gh_client.get_user(login=org)
+    repo_obj = org_user.get_repo(repo)
+    issue_details = repo_obj.get_issue(issue_num)
+    langs = repo_obj.get_languages()
+    for k, _ in langs.items():
+        details['keywords'].append(k)
+    details['title'] = issue_details.title
+    details['description'] = issue_details.body.replace('\n', '').strip()
+    details['state'] = issue_details.state
+    if issue_details.state == 'closed':
+        details['closed_at'] = issue_details.closed_at.isoformat()
+        details['closed_by'] = issue_details.closed_by.name
+    return details
 
 def get_issue_details(itype, org, repo, issue_num, token=None):
-    details = {'keywords': []}
+    details = {}
     try:
         if itype == "github.com" :
-            logger.info("testgh")
-            gh_client = github_connect(token)
-            org_user = gh_client.get_user(login=org)
-            repo_obj = org_user.get_repo(repo)
-            issue_details = repo_obj.get_issue(issue_num)
-            langs = repo_obj.get_languages()
-            for k, _ in langs.items():
-                details['keywords'].append(k)
-            details['title'] = issue_details.title
-            details['description'] = issue_details.body.replace('\n', '').strip()
-            details['state'] = issue_details.state
-            if issue_details.state == 'closed':
-                details['closed_at'] = issue_details.closed_at.isoformat()
-                details['closed_by'] = issue_details.closed_by.name
+            details = get_gh_issue_details(itype, org, repo, issue_num, token)
         elif itype == "gitlab.com":
-            logger.info("testgl")
-            gl_client = gitlab_connect(token)
-            repo_obj = gl_client.projects.get(org + "/" + repo)
-            langs = repo_obj.languages()
-            logger.info(langs)
-            for k, _ in langs.items():
-                details['keywords'].append(k)
-            issue_details = repo_obj.issues.get(issue_num)
-            logger.info(issue_details)
-            details['title'] = issue_details.title
-            details['description'] = issue_details.description.replace('\n', '').strip()
-            details['state'] = issue_details.state
-            if issue_details.state == 'closed':
-                details['closed_at'] = issue_details.closed_at.isoformat()
-                details['closed_by'] = issue_details.closed_by.name
-            
+            details = get_gl_issue_details(itype, org, repo, issue_num, token)
     except UnknownObjectException:
         return {}
     return details
@@ -497,7 +498,7 @@ def search_users(query, token=None):
         return []
 
 
-def get_issue_comments(owner, repo, issue=None, comment_id=None):
+def get_issue_comments(itype,owner, repo, issue=None, comment_id=None):
     """Get the comments from issues on a respository.
     PLEASE NOTE CURRENT LIMITATION OF 100 COMMENTS.
 

@@ -26,7 +26,7 @@ from .models import BountyRequest
 
 class BountyRequestForm(forms.ModelForm):
     """Define the BountyRequestForm handling."""
-    github_url = forms.URLField(label=_('The Github Issue Link'))
+    github_url = forms.URLField(label=_('The Issue Link'))
 
     class Meta:
         model = BountyRequest
